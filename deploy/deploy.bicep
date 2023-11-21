@@ -4,7 +4,18 @@ param location string = resourceGroup().location
 @description('A prefix to add to the start of all resource names. Note: A "unique" suffix will also be added')
 param prefix string = 'ticket'
 
+@description('Which variant of the logic app to deploy. "-withmove" will move the email once processed, "-nomove" will leave the email as-is')
+@allowed([
+  'emailtoazdo-withmove'
+  'emailtoazdo-nomove'
+  //'apitoazdo'
+])
+param workflow string = 'emailtoazdo-nomove'
+
+@description('Tags to apply to all deployed resources')
 param tags object = {}
+
+var workflowDefinition = workflow == 'emailtoazdo-nomove' ? loadJsonContent('logicapps/emailtoazdo-withmove.json').definition : loadJsonContent('logicapps/emailtoazdo-nomove.json').definition
 
 var strippedLocation = replace(toLower(location), ' ', '')
 var uniqueNameFormat = '${prefix}-{0}-${uniqueString(resourceGroup().id, prefix)}'
@@ -74,7 +85,7 @@ resource logicapp 'Microsoft.Logic/workflows@2019-05-01' = {
   name: '${prefix}-logicapp'
   location: location
   properties: {
-    definition: loadJsonContent('logicapps/emailtoazdo.json').definition
+    definition: workflowDefinition
     parameters: {
       '$connections': {
         value: {

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "9055288188243669810"
+      "templateHash": "73387072568192305"
     }
   },
   "parameters": {
@@ -23,9 +23,23 @@
         "description": "A prefix to add to the start of all resource names. Note: A \"unique\" suffix will also be added"
       }
     },
+    "workflow": {
+      "type": "string",
+      "defaultValue": "emailtoazdo-nomove",
+      "allowedValues": [
+        "emailtoazdo-withmove",
+        "emailtoazdo-nomove"
+      ],
+      "metadata": {
+        "description": "Which variant of the logic app to deploy. \"-withmove\" will move the email once processed, \"-nomove\" will leave the email as-is"
+      }
+    },
     "tags": {
       "type": "object",
-      "defaultValue": {}
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to apply to all deployed resources"
+      }
     }
   },
   "variables": {
@@ -238,6 +252,193 @@
         }
       }
     },
+    "$fxv#1": {
+      "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+          "Call_Azure_OpenAI_Chat_Completions": {
+            "inputs": {
+              "authentication": {
+                "audience": "https://cognitiveservices.azure.com",
+                "type": "ManagedServiceIdentity"
+              },
+              "body": "@outputs('Compose_Chat_Completion')",
+              "method": "POST",
+              "uri": "https://demoopenai1562e13.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview"
+            },
+            "runAfter": {
+              "Compose_Chat_Completion": [
+                "Succeeded"
+              ]
+            },
+            "type": "Http"
+          },
+          "Compose_Chat_Completion": {
+            "inputs": {
+              "max_tokens": 800,
+              "messages": [
+                {
+                  "content": "@{variables('Prompt')}",
+                  "role": "system"
+                },
+                {
+                  "content": "Recieved: @{triggerBody()?['receivedDateTime']}\nFrom: @{triggerBody()?['from']}\nSubject: @{triggerBody()?['subject']}\nContent:\n @{triggerBody()?['body']}",
+                  "role": "user"
+                }
+              ],
+              "temperature": 0,
+              "user": "@{triggerBody()?['from']}"
+            },
+            "runAfter": {
+              "Initialize_Prompt": [
+                "Succeeded"
+              ]
+            },
+            "type": "Compose"
+          },
+          "Create_a_work_item": {
+            "inputs": {
+              "body": {
+                "description": "<p>@{triggerBody()?['body']}</p>",
+                "title": "@body('Parse_Azure_OpenAI_Reponse')?['summary']",
+                "userEnteredFields": {
+                  "Details": "@triggerBody()?['body']",
+                  "Error Severity": "@body('Parse_Azure_OpenAI_Reponse')?['severity']",
+                  "Error Source": "@body('Parse_Azure_OpenAI_Reponse')?['potentialErrorSource']",
+                  "Errors Reported": "@body('Parse_Azure_OpenAI_Reponse')?['errorsReported']",
+                  "Reported At": "@body('Parse_Azure_OpenAI_Reponse')?['receivedDate']",
+                  "Reported By": "@body('Parse_Azure_OpenAI_Reponse')?['reportedBy']",
+                  "Solution Proposal": "@body('Parse_Azure_OpenAI_Reponse')?['solutionProposal']"
+                }
+              },
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['visualstudioteamservices']['connectionId']"
+                }
+              },
+              "method": "patch",
+              "path": "/@{encodeURIComponent('AI Xplore Demo')}/_apis/wit/workitems/$Bug",
+              "queries": {
+                "account": "scholden"
+              }
+            },
+            "runAfter": {
+              "Parse_Azure_OpenAI_Reponse": [
+                "Succeeded"
+              ]
+            },
+            "type": "ApiConnection"
+          },
+          "Initialize_Prompt": {
+            "inputs": {
+              "variables": [
+                {
+                  "name": "Prompt",
+                  "type": "string",
+                  "value": "You are an AI assistant that helps a helpdesk analyst who is triaging incident reports received as email by creating a structured JSON containing essential information about the incident using the following rules: \n- Indicate if it is a high priority issue using a \"Crtitical\" tag as a prefix. \n- Indicate if it is a medium priority issue using a \"Medium\" tag as a prefix. \n- Indicate if it is a low priority issue using a \"Low\" tag as a prefix. \n- Indicate if it is a non-tech issue using a \"Non-Tech\" tag as a prefix. \n- create a one-line summary of the incident. Where possible, the summary should include a phrase that indicates the problem area. \n- do your best to identify a category that is relevant to the incident. For example: IT outage, request-for-information, facilities etc. \n- identify the reporter of the incident. Use \\\"UNKNOWN\\\" if you cannot identify the reporter. \n- do your best to consolidate as plain text any error details and stack trace reported in the incident \n- do your best to summarise as text the technical errors reported in the incident \n- do your best to identify a remedial course of action \nThe structured JSON output should follow these mapping rules: \n- reported date as receivedDate \n- reporter as reportedBy, \n- summary as summary, \n- category as category, \n- prefix as severity, \n- email body as details, \n- consolidated errors as errorsReported, \n- technical errors as potentialErrorSource, \n- remedial course of action as solutionProposal. \nReturn only the structured JSON and nothing else."
+                }
+              ]
+            },
+            "runAfter": {},
+            "type": "InitializeVariable"
+          },
+          "Parse_Azure_OpenAI_Reponse": {
+            "inputs": {
+              "content": "@body('Call_Azure_OpenAI_Chat_Completions')['choices'][0]['message']['content']",
+              "schema": {
+                "properties": {
+                  "details": {
+                    "type": "string"
+                  },
+                  "errorsReported": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "incidentNo": {
+                    "type": "string"
+                  },
+                  "potentialErrorSource": {
+                    "type": "string"
+                  },
+                  "receivedDate": {
+                    "type": "string"
+                  },
+                  "reportedBy": {
+                    "type": "string"
+                  },
+                  "severity": {
+                    "type": "string"
+                  },
+                  "solutionProposal": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "runAfter": {
+              "Call_Azure_OpenAI_Chat_Completions": [
+                "Succeeded"
+              ]
+            },
+            "type": "ParseJson"
+          }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+          "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+          }
+        },
+        "triggers": {
+          "When_a_new_email_arrives_(V3)": {
+            "inputs": {
+              "fetch": {
+                "method": "get",
+                "pathTemplate": {
+                  "template": "/v3/Mail/OnNewEmail"
+                },
+                "queries": {
+                  "fetchOnlyWithAttachment": false,
+                  "folderPath": "Inbox",
+                  "importance": "Any",
+                  "includeAttachments": false
+                }
+              },
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['office365']['connectionId']"
+                }
+              },
+              "subscribe": {
+                "body": {
+                  "NotificationUrl": "@{listCallbackUrl()}"
+                },
+                "method": "post",
+                "pathTemplate": {
+                  "template": "/GraphMailSubscriptionPoke/$subscriptions"
+                },
+                "queries": {
+                  "fetchOnlyWithAttachment": false,
+                  "folderPath": "Inbox",
+                  "importance": "Any"
+                }
+              }
+            },
+            "splitOn": "@triggerBody()?['value']",
+            "type": "ApiConnectionNotification"
+          }
+        }
+      }
+    },
+    "workflowDefinition": "[if(equals(parameters('workflow'), 'emailtoazdo-nomove'), variables('$fxv#0').definition, variables('$fxv#1').definition)]",
     "strippedLocation": "[replace(toLower(parameters('location')), ' ', '')]",
     "uniqueNameFormat": "[format('{0}-{{0}}-{1}', parameters('prefix'), uniqueString(resourceGroup().id, parameters('prefix')))]"
   },
@@ -322,7 +523,7 @@
       "name": "[format('{0}-logicapp', parameters('prefix'))]",
       "location": "[parameters('location')]",
       "properties": {
-        "definition": "[variables('$fxv#0').definition]",
+        "definition": "[variables('workflowDefinition')]",
         "parameters": {
           "$connections": {
             "value": {
