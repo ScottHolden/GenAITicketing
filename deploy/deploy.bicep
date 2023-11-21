@@ -2,7 +2,7 @@
 param location string = resourceGroup().location
 
 @description('A prefix to add to the start of all resource names. Note: A "unique" suffix will also be added')
-param prefix string = 'demo1'
+param prefix string = 'ticket'
 
 param tags object = {}
 
@@ -33,6 +33,7 @@ resource openai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
       versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
     }
   }
+  tags: tags
 }
 resource openAIUserRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
   scope: subscription()
