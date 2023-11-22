@@ -15,7 +15,7 @@ param workflow string = 'emailtoazdo-nomove'
 @description('Tags to apply to all deployed resources')
 param tags object = {}
 
-var workflowDefinition = workflow == 'emailtoazdo-nomove' ? loadJsonContent('logicapps/emailtoazdo-withmove.json').definition : loadJsonContent('logicapps/emailtoazdo-nomove.json').definition
+var workflowDefinition = workflow == 'emailtoazdo-withmove' ? loadJsonContent('logicapps/emailtoazdo-withmove.json').definition : loadJsonContent('logicapps/emailtoazdo-nomove.json').definition
 
 var strippedLocation = replace(toLower(location), ' ', '')
 var uniqueNameFormat = '${prefix}-{0}-${uniqueString(resourceGroup().id, prefix)}'

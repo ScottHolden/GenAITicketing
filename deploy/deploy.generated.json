@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "73387072568192305"
+      "templateHash": "12130031366609748219"
     }
   },
   "parameters": {
@@ -438,7 +438,7 @@
         }
       }
     },
-    "workflowDefinition": "[if(equals(parameters('workflow'), 'emailtoazdo-nomove'), variables('$fxv#0').definition, variables('$fxv#1').definition)]",
+    "workflowDefinition": "[if(equals(parameters('workflow'), 'emailtoazdo-withmove'), variables('$fxv#0').definition, variables('$fxv#1').definition)]",
     "strippedLocation": "[replace(toLower(parameters('location')), ' ', '')]",
     "uniqueNameFormat": "[format('{0}-{{0}}-{1}', parameters('prefix'), uniqueString(resourceGroup().id, parameters('prefix')))]"
   },
