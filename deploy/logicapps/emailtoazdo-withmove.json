@@ -10,7 +10,7 @@
                     },
                     "body": "@outputs('Compose_Chat_Completion')",
                     "method": "POST",
-                    "uri": "https://demoopenai1562e13.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview"
+                    "uri": "@{parameters('AzureOpenAIEndpoint')}openai/deployments/gpt-35-turbo-16k/chat/completions?api-version=2023-08-01-preview"
                 },
                 "runAfter": {
                     "Compose_Chat_Completion": [
@@ -164,6 +164,10 @@
             "$connections": {
                 "defaultValue": {},
                 "type": "Object"
+            },
+            "AzureOpenAIEndpoint": {
+                "defaultValue": "https://",
+                "type": "String"
             }
         },
         "triggers": {

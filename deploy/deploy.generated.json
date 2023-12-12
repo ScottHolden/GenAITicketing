@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "12130031366609748219"
+      "templateHash": "15943683006484814075"
     }
   },
   "parameters": {
@@ -55,7 +55,7 @@
               },
               "body": "@outputs('Compose_Chat_Completion')",
               "method": "POST",
-              "uri": "https://demoopenai1562e13.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview"
+              "uri": "@{parameters('AzureOpenAIEndpoint')}openai/deployments/gpt-35-turbo-16k/chat/completions?api-version=2023-08-01-preview"
             },
             "runAfter": {
               "Compose_Chat_Completion": [
@@ -209,6 +209,10 @@
           "$connections": {
             "defaultValue": {},
             "type": "Object"
+          },
+          "AzureOpenAIEndpoint": {
+            "defaultValue": "https://",
+            "type": "String"
           }
         },
         "triggers": {
@@ -264,7 +268,7 @@
               },
               "body": "@outputs('Compose_Chat_Completion')",
               "method": "POST",
-              "uri": "https://demoopenai1562e13.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview"
+              "uri": "@{parameters('AzureOpenAIEndpoint')}openai/deployments/gpt-35-turbo-16k/chat/completions?api-version=2023-08-01-preview"
             },
             "runAfter": {
               "Compose_Chat_Completion": [
@@ -395,6 +399,10 @@
           "$connections": {
             "defaultValue": {},
             "type": "Object"
+          },
+          "AzureOpenAIEndpoint": {
+            "defaultValue": "https://",
+            "type": "String"
           }
         },
         "triggers": {
@@ -525,6 +533,9 @@
       "properties": {
         "definition": "[variables('workflowDefinition')]",
         "parameters": {
+          "AzureOpenAIEndpoint": {
+            "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format(variables('uniqueNameFormat'), 'openai')), '2023-05-01').endpoint]"
+          },
           "$connections": {
             "value": {
               "office365": {
@@ -547,7 +558,8 @@
       "tags": "[parameters('tags')]",
       "dependsOn": [
         "[resourceId('Microsoft.Web/connections', format('{0}-azuredevops', parameters('prefix')))]",
-        "[resourceId('Microsoft.Web/connections', format('{0}-office365', parameters('prefix')))]"
+        "[resourceId('Microsoft.Web/connections', format('{0}-office365', parameters('prefix')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format(variables('uniqueNameFormat'), 'openai'))]"
       ]
     }
   ]

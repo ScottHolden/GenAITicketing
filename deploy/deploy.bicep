@@ -87,6 +87,9 @@ resource logicapp 'Microsoft.Logic/workflows@2019-05-01' = {
   properties: {
     definition: workflowDefinition
     parameters: {
+      AzureOpenAIEndpoint: {
+        value: openai.properties.endpoint
+      }
       '$connections': {
         value: {
           office365: {
